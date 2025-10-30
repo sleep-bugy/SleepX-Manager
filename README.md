@@ -17,6 +17,18 @@ UI/UX contoh sederhana untuk aplikasi *Kernel Manager* berbasis **Android Jetpac
 2. Pastikan **Android Gradle Plugin 8.7+** & **Gradle 8.9**.
 3. Run pada emulator / device.
 
+## CI/CD (GitHub Actions)
+- Workflow: `.github/workflows/android-release.yml`
+- Menjalankan build Release di GitHub dan meng-upload APK/AAB sebagai artifact.
+- Tambahkan Secrets (opsional, untuk signing):
+  - `RELEASE_STORE_FILE_B64` — base64 dari `release.jks`
+  - `RELEASE_STORE_PASSWORD` — password keystore
+  - `RELEASE_KEY_ALIAS` — alias key
+  - `RELEASE_KEY_PASSWORD` — password key
+- Trigger:
+  - Manual: tab Actions → Android Release → Run workflow
+  - Tag push `v*`: otomatis build dan buat GitHub Release + upload asset
+
 ## Publish ke GitHub (contoh)
 ```bash
 git init
