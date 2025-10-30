@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+*/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android/Java/Kotlin
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+local.properties
+.externalNativeBuild/
+.cxx/
+captures/
+*.keystore
+*.jks
+
+# Logs and OS
+*.log
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# Kotlin/JetBrains
+.kotlin/
+
+# Gradle cache and lock files
+**/.gradle/
+gradle-app.setting
+gradle-app.setting.lock
+
+# Misc
+/.env
+/.env.*
+/.cache/
