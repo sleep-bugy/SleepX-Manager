@@ -30,6 +30,8 @@ git push -u origin main
 - Perintah yang digunakan untuk apply governor:
   - `for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo -n <governor> > $f; done`
 - Aplikasi melakukan polling thermal dari sysfs (`/sys/class/thermal/thermal_zone*/{type,temp}`) tiap ~1s. Nilai >= 200 dianggap milidegree dan otomatis dibagi 1000.
+- Monitor memiliki toggle untuk pause/resume polling agar hemat baterai.
+- Di layar Monitor, chip ringkas akan berwarna peringatan jika rata-rata suhu CPU > 70°C.
 - Berjalan sebagai UI monitoring ringan; tidak menulis ke partisi/system selain operasi tuning yang eksplisit diminta pengguna.
 
 ## Catatan Perangkat

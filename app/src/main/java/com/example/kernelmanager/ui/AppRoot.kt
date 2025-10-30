@@ -148,6 +148,25 @@ fun MonitorScreen(vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("📊 Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
+
+        // Top summary chip with avg temp, warning color when hot (>70°C)
+        val avg = state.avgCpuTempC
+        val isHot = (avg ?: Float.NEGATIVE_INFINITY) > 70f
+        ElevatedAssistChip(
+            onClick = {},
+            label = { Text(avg?.let { String.format("Avg: %.1f°C", it) } ?: "Avg: -") },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = if (isHot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
+                labelColor = if (isHot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+
+        // Polling toggle to save battery
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Polling", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = state.pollingEnabled, onCheckedChange = { vm.setPollingEnabled(it) })
+        }
+
         CpuTempsRow(state.cpuZones)
         Divider()
         Text("🌡️ Thermal Zones", style = MaterialTheme.typography.titleMedium)

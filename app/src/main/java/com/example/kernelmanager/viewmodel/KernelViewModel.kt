@@ -36,7 +36,8 @@ data class UiState(
     // Governors
     val availableGovernors: List<String> = emptyList(),
     val currentGovernor: String? = null,
-    val lastRootActionMessage: String = ""
+    val lastRootActionMessage: String = "",
+    val pollingEnabled: Boolean = true
 )
 
 class KernelViewModel {
@@ -48,6 +49,10 @@ class KernelViewModel {
     init {
         scope.launch {
             while (isActive) {
+                if (!_uiState.value.pollingEnabled) {
+                    delay(1000)
+                    continue
+                }
                 val zones = readThermalZones()
                 val cpuRelated = zones.filter { it.type.contains("cpu", ignoreCase = true) }
                 val avg = cpuRelated.mapNotNull { it.tempC }.takeIf { it.isNotEmpty() }?.average()?.toFloat()
@@ -102,6 +107,10 @@ class KernelViewModel {
                 _uiState.update { it.copy(lastRootActionMessage = "Root required. Error: ${'$'}{t.message}") }
             }
         }
+    }
+
+    fun setPollingEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(pollingEnabled = enabled) }
     }
 
     private fun readThermalZones(): List<ThermalZoneInfo> {
