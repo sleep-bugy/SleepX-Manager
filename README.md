@@ -9,6 +9,7 @@ UI/UX contoh sederhana untuk aplikasi *Kernel Manager* berbasis **Android Jetpac
 - Monitor: daftar suhu per thermal zone (CPU dikelompokkan otomatis).
 - Tuning CPU (Root): pilih governor dan apply ke semua core.
 - UI Material 3 (light), Compose Navigation, MVVM + StateFlow polling.
+ - Settings: atur polling interval, ambang suhu panas, dan toggle polling (persisten).
 
 ## Build
 1. Buka folder ini di **Android Studio Jellyfish+**.
@@ -32,6 +33,7 @@ git push -u origin main
 - Aplikasi melakukan polling thermal dari sysfs (`/sys/class/thermal/thermal_zone*/{type,temp}`) tiap ~1s. Nilai >= 200 dianggap milidegree dan otomatis dibagi 1000.
 - Monitor memiliki toggle untuk pause/resume polling agar hemat baterai.
 - Di layar Monitor, chip ringkas akan berwarna peringatan jika rata-rata suhu CPU > 70°C.
+ - Settings menyimpan preferensi (polling enabled, interval, ambang panas) secara persisten.
 - Berjalan sebagai UI monitoring ringan; tidak menulis ke partisi/system selain operasi tuning yang eksplisit diminta pengguna.
 
 ## Catatan Perangkat

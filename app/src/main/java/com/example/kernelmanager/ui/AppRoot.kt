@@ -6,14 +6,15 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -23,11 +24,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.kernelmanager.viewmodel.KernelViewModel
 import com.example.kernelmanager.viewmodel.ThermalZoneInfo
+import kotlin.math.roundToInt
 
 @Composable
 fun AppRoot() {
     val nav = rememberNavController()
-    val vm = remember { KernelViewModel() }
+    val context = LocalContext.current
+    val vm = remember(context) { KernelViewModel(context.applicationContext) }
     Scaffold(
         topBar = { TopBar(nav) },
         bottomBar = { BottomBar(nav) }
@@ -52,11 +55,12 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Flash: Screen("flash", "Flash", Icons.Filled.Download)
     object Backup: Screen("backup", "Backup", Icons.Filled.Build)
     object Restore: Screen("restore", "Restore", Icons.Filled.Restore)
+    object Settings: Screen("settings", "Settings", Icons.Filled.Settings)
 }
 
 @Composable
 private fun BottomBar(nav: NavHostController) {
-    val items = listOf(Screen.Dashboard, Screen.Monitor, Screen.Tuning, Screen.Flash, Screen.Backup, Screen.Restore)
+    val items = listOf(Screen.Dashboard, Screen.Monitor, Screen.Tuning, Screen.Flash, Screen.Backup, Screen.Restore, Screen.Settings)
     NavigationBar {
         val currentRoute = nav.currentBackStackEntryAsState().value?.destination?.route
         items.forEach { screen ->
@@ -79,6 +83,7 @@ private fun AppNavHost(nav: NavHostController, vm: KernelViewModel) {
         composable(Screen.Flash.route) { FlashScreen(vm) }
         composable(Screen.Backup.route) { BackupScreen(vm) }
         composable(Screen.Restore.route) { RestoreScreen(vm) }
+        composable(Screen.Settings.route) { SettingsScreen(vm) }
     }
 }
 
@@ -123,21 +128,26 @@ fun DashboardScreen(vm: KernelViewModel) {
             }
         }
         Text("CPU Temps (Live)", style = MaterialTheme.typography.titleMedium)
-        CpuTempsRow(state.cpuZones)
+        CpuTempsRow(state.cpuZones, state.hotThresholdC)
     }
 }
 
 @Composable
-fun CpuTempsRow(zones: List<ThermalZoneInfo>) {
+fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
     if (zones.isEmpty()) {
         AssistChip(onClick = {}, label = { Text("No CPU thermal zones detected") })
         return
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         zones.take(4).forEach { z ->
+            val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > hotThreshold
             ElevatedAssistChip(
                 onClick = {},
-                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f°C", it) } ?: "-"}") }
+                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f°C", it) } ?: "-"}") },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         }
     }
@@ -149,9 +159,9 @@ fun MonitorScreen(vm: KernelViewModel) {
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("📊 Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
 
-        // Top summary chip with avg temp, warning color when hot (>70°C)
+        // Top summary chip with avg temp, warning color when hot
         val avg = state.avgCpuTempC
-        val isHot = (avg ?: Float.NEGATIVE_INFINITY) > 70f
+        val isHot = (avg ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
         ElevatedAssistChip(
             onClick = {},
             label = { Text(avg?.let { String.format("Avg: %.1f°C", it) } ?: "Avg: -") },
@@ -167,17 +177,54 @@ fun MonitorScreen(vm: KernelViewModel) {
             Switch(checked = state.pollingEnabled, onCheckedChange = { vm.setPollingEnabled(it) })
         }
 
-        CpuTempsRow(state.cpuZones)
+        CpuTempsRow(state.cpuZones, state.hotThresholdC)
         Divider()
         Text("🌡️ Thermal Zones", style = MaterialTheme.typography.titleMedium)
         state.allZones.forEach { z ->
+            val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
             ListItem(
                 headlineContent = { Text(z.type.ifBlank { "thermal_zone${'$'}{z.id}" }) },
                 supportingContent = { Text("ID ${'$'}{z.id}") },
-                trailingContent = { Text(z.tempC?.let { String.format("%.1f°C", it) } ?: "-") }
+                trailingContent = {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(z.tempC?.let { String.format("%.1f°C", it) } ?: "-") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
             )
             Divider()
         }
+    }
+}
+
+@Composable
+fun SettingsScreen(vm: KernelViewModel) {
+    val state by vm.uiState.collectAsState()
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Settings", style = MaterialTheme.typography.titleLarge)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Enable polling")
+            Switch(checked = state.pollingEnabled, onCheckedChange = { vm.setPollingEnabled(it) })
+        }
+        Text("Polling interval: ${'$'}{state.pollingIntervalMs} ms")
+        Slider(
+            value = state.pollingIntervalMs.toFloat(),
+            onValueChange = { vm.setPollingIntervalMs(it.roundToInt()) },
+            valueRange = 250f..5000f,
+            steps = 18
+        )
+        Text("Hot threshold: ${'$'}{String.format("%.0f°C", state.hotThresholdC)}")
+        Slider(
+            value = state.hotThresholdC,
+            onValueChange = { vm.setHotThresholdC(it) },
+            valueRange = 50f..95f,
+            steps = 45
+        )
+        AssistChip(onClick = {}, label = { Text("Changes are saved automatically") })
     }
 }
 

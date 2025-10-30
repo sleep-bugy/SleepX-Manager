@@ -1,5 +1,6 @@
 package com.example.kernelmanager.viewmodel
 
+import android.content.Context
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,16 +38,24 @@ data class UiState(
     val availableGovernors: List<String> = emptyList(),
     val currentGovernor: String? = null,
     val lastRootActionMessage: String = "",
-    val pollingEnabled: Boolean = true
+    val pollingEnabled: Boolean = true,
+    val pollingIntervalMs: Int = 1000,
+    val hotThresholdC: Float = 70f
 )
 
-class KernelViewModel {
+class KernelViewModel(private val context: Context) {
     private val _uiState = MutableStateFlow(UiState())
     val uiState = _uiState.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val prefs by lazy { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
 
     init {
+        // Load persisted settings
+        val enabled = prefs.getBoolean("pollingEnabled", true)
+        val interval = prefs.getInt("pollingIntervalMs", 1000).coerceIn(250, 10000)
+        val threshold = prefs.getFloat("hotThresholdC", 70f)
+        _uiState.update { it.copy(pollingEnabled = enabled, pollingIntervalMs = interval, hotThresholdC = threshold) }
         scope.launch {
             while (isActive) {
                 if (!_uiState.value.pollingEnabled) {
@@ -68,7 +77,7 @@ class KernelViewModel {
                         currentGovernor = curGov
                     )
                 }
-                delay(1000)
+                delay(_uiState.value.pollingIntervalMs.toLong().coerceAtLeast(250L))
             }
         }
     }
@@ -110,7 +119,20 @@ class KernelViewModel {
     }
 
     fun setPollingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("pollingEnabled", enabled).apply()
         _uiState.update { it.copy(pollingEnabled = enabled) }
+    }
+
+    fun setPollingIntervalMs(ms: Int) {
+        val v = ms.coerceIn(250, 10000)
+        prefs.edit().putInt("pollingIntervalMs", v).apply()
+        _uiState.update { it.copy(pollingIntervalMs = v) }
+    }
+
+    fun setHotThresholdC(c: Float) {
+        val v = c.coerceIn(40f, 110f)
+        prefs.edit().putFloat("hotThresholdC", v).apply()
+        _uiState.update { it.copy(hotThresholdC = v) }
     }
 
     private fun readThermalZones(): List<ThermalZoneInfo> {
