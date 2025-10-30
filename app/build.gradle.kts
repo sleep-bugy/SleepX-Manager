@@ -29,8 +29,10 @@ android {
             val keyPass = (project.findProperty("RELEASE_KEY_PASSWORD") as String?)
                 ?: System.getenv("RELEASE_KEY_PASSWORD")
 
-            if (!storeFilePath.isNullOrBlank() && !storePass.isNullOrBlank() && !keyAliasProp.isNullOrBlank() && !keyPass.isNullOrBlank()) {
-                storeFile = file(storeFilePath)
+            val candidate = storeFilePath?.let { file(it) }
+            val hasCreds = !storePass.isNullOrBlank() && !keyAliasProp.isNullOrBlank() && !keyPass.isNullOrBlank()
+            if (candidate != null && candidate.exists() && hasCreds) {
+                storeFile = candidate
                 storePassword = storePass
                 keyAlias = keyAliasProp
                 keyPassword = keyPass
@@ -47,7 +49,8 @@ android {
             )
             // Use release signing if fully configured; otherwise fall back to debug signing
             val rel = signingConfigs.getByName("release")
-            val hasReleaseSigning = (rel.storeFile != null) &&
+            val relFile = rel.storeFile
+            val hasReleaseSigning = (relFile != null && relFile.exists()) &&
                     !rel.storePassword.isNullOrEmpty() &&
                     !rel.keyAlias.isNullOrEmpty() &&
                     !rel.keyPassword.isNullOrEmpty()
