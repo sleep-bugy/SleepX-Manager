@@ -15,6 +15,27 @@ android {
         versionName = "1.0"
     }
 
+    // Optional release signing through properties or environment variables
+    signingConfigs {
+        create("release") {
+            val storeFilePath = (project.findProperty("RELEASE_STORE_FILE") as String?)
+                ?: System.getenv("RELEASE_STORE_FILE")
+            val storePass = (project.findProperty("RELEASE_STORE_PASSWORD") as String?)
+                ?: System.getenv("RELEASE_STORE_PASSWORD")
+            val keyAliasProp = (project.findProperty("RELEASE_KEY_ALIAS") as String?)
+                ?: System.getenv("RELEASE_KEY_ALIAS")
+            val keyPass = (project.findProperty("RELEASE_KEY_PASSWORD") as String?)
+                ?: System.getenv("RELEASE_KEY_PASSWORD")
+
+            if (!storeFilePath.isNullOrBlank() && !storePass.isNullOrBlank() && !keyAliasProp.isNullOrBlank() && !keyPass.isNullOrBlank()) {
+                storeFile = file(storeFilePath)
+                storePassword = storePass
+                keyAlias = keyAliasProp
+                keyPassword = keyPass
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -22,6 +43,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use release signing if fully configured; otherwise fall back to debug signing
+            val rel = signingConfigs.getByName("release")
+            val hasReleaseSigning = (rel.storeFile != null) &&
+                    !rel.storePassword.isNullOrEmpty() &&
+                    !rel.keyAlias.isNullOrEmpty() &&
+                    !rel.keyPassword.isNullOrEmpty()
+            signingConfig = if (hasReleaseSigning) rel else signingConfigs.getByName("debug")
         }
         debug {
             applicationIdSuffix = ".debug"
