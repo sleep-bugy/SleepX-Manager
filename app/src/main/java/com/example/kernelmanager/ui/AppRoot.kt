@@ -242,6 +242,7 @@ fun SettingsScreen(vm: KernelViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TuningScreen(vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
