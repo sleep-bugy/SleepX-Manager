@@ -5,8 +5,10 @@ UI/UX contoh sederhana untuk aplikasi *Kernel Manager* berbasis **Android Jetpac
 
 ## Fitur
 - Dashboard: info device + progress status.
-- Tab navigasi: Dashboard / Flash / Backup / Restore.
-- Arsitektur sederhana: ViewModel + StateFlow, tanpa dependency berat.
+- Compact CPU card: rata-rata suhu CPU dan core terpanas (real-time).
+- Monitor: daftar suhu per thermal zone (CPU dikelompokkan otomatis).
+- Tuning CPU (Root): pilih governor dan apply ke semua core.
+- UI Material 3 (light), Compose Navigation, MVVM + StateFlow polling.
 
 ## Build
 1. Buka folder ini di **Android Studio Jellyfish+**.
@@ -22,3 +24,14 @@ git commit -m "init: Kernel Manager UI demo (Compose)"
 git remote add origin https://github.com/<username>/<repo>.git
 git push -u origin main
 ```
+
+## Root & Keamanan
+- Fitur Tuning CPU memerlukan akses root via [libsu](https://github.com/topjohnwu/libsu). Saat pertama kali apply governor, aplikasi akan meminta grant root. Jika ditolak, perubahan tidak dijalankan.
+- Perintah yang digunakan untuk apply governor:
+  - `for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo -n <governor> > $f; done`
+- Aplikasi melakukan polling thermal dari sysfs (`/sys/class/thermal/thermal_zone*/{type,temp}`) tiap ~1s. Nilai >= 200 dianggap milidegree dan otomatis dibagi 1000.
+- Berjalan sebagai UI monitoring ringan; tidak menulis ke partisi/system selain operasi tuning yang eksplisit diminta pengguna.
+
+## Catatan Perangkat
+- Nama governor dan thermal zone dapat berbeda-beda per device/kernel.
+- Beberapa device tidak mengekspos thermal CPU terpisah; kartu ringkas akan menampilkan "-" jika data tidak tersedia.

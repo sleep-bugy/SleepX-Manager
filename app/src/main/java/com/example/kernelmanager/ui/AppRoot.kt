@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,26 @@ fun DashboardScreen(vm: KernelViewModel) {
                 Text("Boot State: ${'$'}{state.bootState}")
                 LinearProgressIndicator(progress = { state.progress })
                 Text(state.progressLabel)
+            }
+        }
+        // Compact CPU temperature card
+        Card(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Avg CPU Temp", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(state.avgCpuTempC?.let { String.format("%.1f°C", it) } ?: "-", style = MaterialTheme.typography.titleLarge)
+                }
+                Divider(Modifier.height(36.dp).width(1.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Hottest Core", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    val hot = state.hottestCpuZone
+                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f°C", t) } ?: "-"}" } ?: "-",
+                        style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
         Text("CPU Temps (Live)", style = MaterialTheme.typography.titleMedium)

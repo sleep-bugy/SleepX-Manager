@@ -30,6 +30,8 @@ data class UiState(
     // Monitoring
     val cpuZones: List<ThermalZoneInfo> = emptyList(),
     val allZones: List<ThermalZoneInfo> = emptyList(),
+    val avgCpuTempC: Float? = null,
+    val hottestCpuZone: ThermalZoneInfo? = null,
 
     // Governors
     val availableGovernors: List<String> = emptyList(),
@@ -48,11 +50,15 @@ class KernelViewModel {
             while (isActive) {
                 val zones = readThermalZones()
                 val cpuRelated = zones.filter { it.type.contains("cpu", ignoreCase = true) }
+                val avg = cpuRelated.mapNotNull { it.tempC }.takeIf { it.isNotEmpty() }?.average()?.toFloat()
+                val hottest = cpuRelated.maxByOrNull { it.tempC ?: Float.MIN_VALUE }
                 val (availGovs, curGov) = readGovernors()
                 _uiState.update {
                     it.copy(
                         allZones = zones,
                         cpuZones = cpuRelated,
+                        avgCpuTempC = avg,
+                        hottestCpuZone = hottest,
                         availableGovernors = availGovs,
                         currentGovernor = curGov
                     )
@@ -78,6 +84,12 @@ class KernelViewModel {
     fun applyGovernor(governor: String) {
         scope.launch {
             try {
+                // Safety: confirm root first
+                val probe = Shell.su("id").exec()
+                if (!probe.isSuccess) {
+                    _uiState.update { it.copy(lastRootActionMessage = "Root not granted. Unable to apply governor.") }
+                    return@launch
+                }
                 val result = Shell.su("for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo -n ${'$'}governor > ${'$'}f; done").exec()
                 val ok = result.isSuccess
                 _uiState.update {
