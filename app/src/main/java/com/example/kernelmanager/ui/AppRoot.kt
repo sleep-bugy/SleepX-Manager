@@ -42,6 +42,7 @@ fun AppRoot() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(nav: NavHostController) {
     TopAppBar(
@@ -265,7 +266,8 @@ fun TuningScreen(vm: KernelViewModel) {
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { selected?.let { vm.applyGovernor(it) } }, enabled = selected != null && state.pollingEnabled) { Text("Apply") }
-            AssistChip(onClick = {}, label = { Text("Current: ${'$'}{state.currentGovernor ?: "-"}") })
+            val currentGov = state.currentGovernor ?: "-"
+            AssistChip(onClick = {}, label = { Text("Current: ${'$'}currentGov") })
         }
         if (!state.pollingEnabled) {
             Text("Enable polling to apply tuning", color = MaterialTheme.colorScheme.error)
