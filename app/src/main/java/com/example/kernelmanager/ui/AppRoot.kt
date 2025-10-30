@@ -78,7 +78,7 @@ private fun BottomBar(nav: NavHostController) {
 private fun AppNavHost(nav: NavHostController, vm: KernelViewModel) {
     NavHost(navController = nav, startDestination = Screen.Dashboard.route) {
         composable(Screen.Dashboard.route) { DashboardScreen(vm) }
-        composable(Screen.Monitor.route) { MonitorScreen(vm) }
+        composable(Screen.Monitor.route) { MonitorScreen(nav, vm) }
         composable(Screen.Tuning.route) { TuningScreen(vm) }
         composable(Screen.Flash.route) { FlashScreen(vm) }
         composable(Screen.Backup.route) { BackupScreen(vm) }
@@ -154,10 +154,13 @@ fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
 }
 
 @Composable
-fun MonitorScreen(vm: KernelViewModel) {
+fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("📊 Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("📊 Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = { nav.navigate(Screen.Settings.route) }) { Text("Settings") }
+        }
 
         // Top summary chip with avg temp, warning color when hot
         val avg = state.avgCpuTempC
@@ -232,7 +235,7 @@ fun SettingsScreen(vm: KernelViewModel) {
 fun TuningScreen(vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember(state.currentGovernor) { mutableStateOf(state.currentGovernor ?: state.availableGovernors.firstOrNull()) }
+    var selected by remember(state.preferredGovernor, state.currentGovernor) { mutableStateOf(state.preferredGovernor ?: state.currentGovernor ?: state.availableGovernors.firstOrNull()) }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("⚙️ CPU Tuning (Root)", style = MaterialTheme.typography.titleLarge)
         Text("Available governors: ${'$'}{state.availableGovernors.joinToString()}")
@@ -246,13 +249,16 @@ fun TuningScreen(vm: KernelViewModel) {
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 state.availableGovernors.forEach { gov ->
-                    DropdownMenuItem(text = { Text(gov) }, onClick = { selected = gov; expanded = false })
+                    DropdownMenuItem(text = { Text(gov) }, onClick = { selected = gov; expanded = false; vm.setPreferredGovernor(gov) })
                 }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { selected?.let { vm.applyGovernor(it) } }, enabled = selected != null) { Text("Apply") }
+            Button(onClick = { selected?.let { vm.applyGovernor(it) } }, enabled = selected != null && state.pollingEnabled) { Text("Apply") }
             AssistChip(onClick = {}, label = { Text("Current: ${'$'}{state.currentGovernor ?: "-"}") })
+        }
+        if (!state.pollingEnabled) {
+            Text("Enable polling to apply tuning", color = MaterialTheme.colorScheme.error)
         }
         if (state.lastRootActionMessage.isNotEmpty()) {
             Text(state.lastRootActionMessage, color = MaterialTheme.colorScheme.primary)

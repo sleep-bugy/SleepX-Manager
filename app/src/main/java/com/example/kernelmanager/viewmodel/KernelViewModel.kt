@@ -38,6 +38,7 @@ data class UiState(
     val availableGovernors: List<String> = emptyList(),
     val currentGovernor: String? = null,
     val lastRootActionMessage: String = "",
+    val preferredGovernor: String? = null,
     val pollingEnabled: Boolean = true,
     val pollingIntervalMs: Int = 1000,
     val hotThresholdC: Float = 70f
@@ -55,7 +56,8 @@ class KernelViewModel(private val context: Context) {
         val enabled = prefs.getBoolean("pollingEnabled", true)
         val interval = prefs.getInt("pollingIntervalMs", 1000).coerceIn(250, 10000)
         val threshold = prefs.getFloat("hotThresholdC", 70f)
-        _uiState.update { it.copy(pollingEnabled = enabled, pollingIntervalMs = interval, hotThresholdC = threshold) }
+        val prefGov = prefs.getString("preferredGovernor", null)
+        _uiState.update { it.copy(pollingEnabled = enabled, pollingIntervalMs = interval, hotThresholdC = threshold, preferredGovernor = prefGov) }
         scope.launch {
             while (isActive) {
                 if (!_uiState.value.pollingEnabled) {
@@ -98,6 +100,10 @@ class KernelViewModel(private val context: Context) {
     fun applyGovernor(governor: String) {
         scope.launch {
             try {
+                if (!_uiState.value.pollingEnabled) {
+                    _uiState.update { it.copy(lastRootActionMessage = "Enable polling to apply tuning") }
+                    return@launch
+                }
                 // Safety: confirm root first
                 val probe = Shell.su("id").exec()
                 if (!probe.isSuccess) {
@@ -109,9 +115,11 @@ class KernelViewModel(private val context: Context) {
                 _uiState.update {
                     it.copy(
                         lastRootActionMessage = if (ok) "Governor applied: ${'$'}governor" else "Failed to apply governor",
-                        currentGovernor = if (ok) governor else it.currentGovernor
+                        currentGovernor = if (ok) governor else it.currentGovernor,
+                        preferredGovernor = if (ok) governor else it.preferredGovernor
                     )
                 }
+                if (ok) setPreferredGovernor(governor)
             } catch (t: Throwable) {
                 _uiState.update { it.copy(lastRootActionMessage = "Root required. Error: ${'$'}{t.message}") }
             }
@@ -133,6 +141,11 @@ class KernelViewModel(private val context: Context) {
         val v = c.coerceIn(40f, 110f)
         prefs.edit().putFloat("hotThresholdC", v).apply()
         _uiState.update { it.copy(hotThresholdC = v) }
+    }
+
+    fun setPreferredGovernor(gov: String) {
+        prefs.edit().putString("preferredGovernor", gov).apply()
+        _uiState.update { it.copy(preferredGovernor = gov) }
     }
 
     private fun readThermalZones(): List<ThermalZoneInfo> {
