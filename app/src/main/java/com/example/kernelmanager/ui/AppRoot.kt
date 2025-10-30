@@ -107,7 +107,6 @@ fun DashboardScreen(vm: KernelViewModel) {
                 Text(state.progressLabel)
             }
         }
-        // Compact CPU temperature card
         Card(Modifier.fillMaxWidth()) {
             Row(
                 Modifier.padding(16.dp).fillMaxWidth(),
@@ -116,13 +115,13 @@ fun DashboardScreen(vm: KernelViewModel) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Avg CPU Temp", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
-                    Text(state.avgCpuTempC?.let { String.format("%.1f°C", it) } ?: "-", style = MaterialTheme.typography.titleLarge)
+                    Text(state.avgCpuTempC?.let { String.format("%.1f\u00B0C", it) } ?: "-", style = MaterialTheme.typography.titleLarge)
                 }
                 Divider(Modifier.height(36.dp).width(1.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Hottest Core", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                     val hot = state.hottestCpuZone
-                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f°C", t) } ?: "-"}" } ?: "-",
+                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f\u00B0C", t) } ?: "-"}" } ?: "-",
                         style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -143,7 +142,7 @@ fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
             val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > hotThreshold
             ElevatedAssistChip(
                 onClick = {},
-                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f°C", it) } ?: "-"}") },
+                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f\u00B0C", it) } ?: "-"}") },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                     labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -158,23 +157,21 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("📊 Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
+            Text("Real-time CPU Temperature", style = MaterialTheme.typography.titleLarge)
             TextButton(onClick = { nav.navigate(Screen.Settings.route) }) { Text("Settings") }
         }
 
-        // Top summary chip with avg temp, warning color when hot
         val avg = state.avgCpuTempC
         val isHot = (avg ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
         ElevatedAssistChip(
             onClick = {},
-            label = { Text(avg?.let { String.format("Avg: %.1f°C", it) } ?: "Avg: -") },
+            label = { Text(avg?.let { String.format("Avg: %.1f\u00B0C", it) } ?: "Avg: -") },
             colors = AssistChipDefaults.assistChipColors(
                 containerColor = if (isHot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                 labelColor = if (isHot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
-        // Polling toggle to save battery
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Polling", style = MaterialTheme.typography.bodyMedium)
             Switch(checked = state.pollingEnabled, onCheckedChange = { vm.setPollingEnabled(it) })
@@ -182,7 +179,7 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
 
         CpuTempsRow(state.cpuZones, state.hotThresholdC)
         Divider()
-        Text("🌡️ Thermal Zones", style = MaterialTheme.typography.titleMedium)
+        Text("Thermal Zones", style = MaterialTheme.typography.titleMedium)
         state.allZones.forEach { z ->
             val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
             ListItem(
@@ -191,7 +188,7 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
                 trailingContent = {
                     AssistChip(
                         onClick = {},
-                        label = { Text(z.tempC?.let { String.format("%.1f°C", it) } ?: "-") },
+                        label = { Text(z.tempC?.let { String.format("%.1f\u00B0C", it) } ?: "-") },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -220,7 +217,7 @@ fun SettingsScreen(vm: KernelViewModel) {
             valueRange = 250f..5000f,
             steps = 18
         )
-        Text("Hot threshold: ${'$'}{String.format("%.0f°C", state.hotThresholdC)}")
+        Text("Hot threshold: ${'$'}{String.format("%.0f\u00B0C", state.hotThresholdC)}")
         Slider(
             value = state.hotThresholdC,
             onValueChange = { vm.setHotThresholdC(it) },
@@ -237,7 +234,7 @@ fun TuningScreen(vm: KernelViewModel) {
     var expanded by remember { mutableStateOf(false) }
     var selected by remember(state.preferredGovernor, state.currentGovernor) { mutableStateOf(state.preferredGovernor ?: state.currentGovernor ?: state.availableGovernors.firstOrNull()) }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("⚙️ CPU Tuning (Root)", style = MaterialTheme.typography.titleLarge)
+        Text("CPU Tuning (Root)", style = MaterialTheme.typography.titleLarge)
         Text("Available governors: ${'$'}{state.availableGovernors.joinToString()}")
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
             OutlinedTextField(
