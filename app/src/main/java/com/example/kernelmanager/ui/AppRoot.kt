@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +88,7 @@ private fun AppNavHost(nav: NavHostController, vm: KernelViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
@@ -121,8 +123,12 @@ fun DashboardScreen(vm: KernelViewModel) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Hottest Core", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                     val hot = state.hottestCpuZone
-                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f C", t) } ?: "-"}" } ?: "-",
-                        style = MaterialTheme.typography.titleMedium)
+                    val hotLabel = if (hot != null) {
+                        val t = hot.tempC
+                        val tText = if (t != null) String.format("%.1f C", t) else "-"
+                        "${'$'}{hot.type}: ${'$'}tText"
+                    } else "-"
+                    Text(hotLabel, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -131,6 +137,7 @@ fun DashboardScreen(vm: KernelViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
     if (zones.isEmpty()) {
@@ -140,9 +147,11 @@ fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         zones.take(4).forEach { z ->
             val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > hotThreshold
+            val tText = z.tempC?.let { String.format("%.1f C", it) } ?: "-"
+            val label = "${'$'}{z.type}: ${'$'}tText"
             ElevatedAssistChip(
                 onClick = {},
-                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f C", it) } ?: "-"}") },
+                label = { Text(label) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                     labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -152,6 +161,7 @@ fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
@@ -182,13 +192,14 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
         Text("Thermal Zones", style = MaterialTheme.typography.titleMedium)
         state.allZones.forEach { z ->
             val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
+            val tText = z.tempC?.let { String.format("%.1f C", it) } ?: "-"
             ListItem(
                 headlineContent = { Text(z.type.ifBlank { "thermal_zone${'$'}{z.id}" }) },
                 supportingContent = { Text("ID ${'$'}{z.id}") },
                 trailingContent = {
                     AssistChip(
                         onClick = {},
-                        label = { Text(z.tempC?.let { String.format("%.1f C", it) } ?: "-") },
+                        label = { Text(tText) },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -201,6 +212,7 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: KernelViewModel) {
     val state by vm.uiState.collectAsState()
@@ -217,7 +229,8 @@ fun SettingsScreen(vm: KernelViewModel) {
             valueRange = 250f..5000f,
             steps = 18
         )
-        Text("Hot threshold: ${'$'}{String.format("%.0f C", state.hotThresholdC)}")
+        val thText = String.format("%.0f C", state.hotThresholdC)
+        Text("Hot threshold: ${'$'}thText")
         Slider(
             value = state.hotThresholdC,
             onValueChange = { vm.setHotThresholdC(it) },
