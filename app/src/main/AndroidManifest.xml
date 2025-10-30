@@ -3,7 +3,7 @@
     <application
         android:allowBackup="true"
         android:label="Kernel Manager"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
         <activity android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
