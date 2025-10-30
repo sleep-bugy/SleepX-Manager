@@ -1,7 +1,6 @@
 package com.example.kernelmanager.viewmodel
 
 import android.content.Context
-import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import java.io.File
 
 data class ThermalZoneInfo(
@@ -104,14 +104,12 @@ class KernelViewModel(private val context: Context) {
                     _uiState.update { it.copy(lastRootActionMessage = "Enable polling to apply tuning") }
                     return@launch
                 }
-                // Safety: confirm root first
-                val probe = Shell.su("id").exec()
-                if (!probe.isSuccess) {
+                // Safety: confirm root first using su -c
+                if (!runSu("id")) {
                     _uiState.update { it.copy(lastRootActionMessage = "Root not granted. Unable to apply governor.") }
                     return@launch
                 }
-                val result = Shell.su("for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo -n ${'$'}governor > ${'$'}f; done").exec()
-                val ok = result.isSuccess
+                val ok = runSu("for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo -n ${'$'}governor > ${'$'}f; done")
                 _uiState.update {
                     it.copy(
                         lastRootActionMessage = if (ok) "Governor applied: ${'$'}governor" else "Failed to apply governor",
@@ -123,6 +121,18 @@ class KernelViewModel(private val context: Context) {
             } catch (t: Throwable) {
                 _uiState.update { it.copy(lastRootActionMessage = "Root required. Error: ${'$'}{t.message}") }
             }
+        }
+    }
+
+    private fun runSu(cmd: String): Boolean {
+        return try {
+            val pb = ProcessBuilder("su", "-c", cmd)
+                .redirectErrorStream(true)
+            val p = pb.start()
+            p.waitFor(5000, TimeUnit.MILLISECONDS)
+            p.exitValue() == 0
+        } catch (e: Exception) {
+            false
         }
     }
 

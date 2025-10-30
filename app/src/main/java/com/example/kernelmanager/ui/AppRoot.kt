@@ -43,7 +43,7 @@ fun AppRoot() {
 
 @Composable
 private fun TopBar(nav: NavHostController) {
-    SmallTopAppBar(
+    TopAppBar(
         title = { Text("Kernel Manager", fontWeight = FontWeight.SemiBold) }
     )
 }
@@ -115,13 +115,13 @@ fun DashboardScreen(vm: KernelViewModel) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Avg CPU Temp", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
-                    Text(state.avgCpuTempC?.let { String.format("%.1f\u00B0C", it) } ?: "-", style = MaterialTheme.typography.titleLarge)
+                    Text(state.avgCpuTempC?.let { String.format("%.1f C", it) } ?: "-", style = MaterialTheme.typography.titleLarge)
                 }
                 Divider(Modifier.height(36.dp).width(1.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Hottest Core", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                     val hot = state.hottestCpuZone
-                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f\u00B0C", t) } ?: "-"}" } ?: "-",
+                    Text(hot?.let { "${'$'}{it.type}: ${'$'}{it.tempC?.let { t -> String.format("%.1f C", t) } ?: "-"}" } ?: "-",
                         style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -142,7 +142,7 @@ fun CpuTempsRow(zones: List<ThermalZoneInfo>, hotThreshold: Float) {
             val hot = (z.tempC ?: Float.NEGATIVE_INFINITY) > hotThreshold
             ElevatedAssistChip(
                 onClick = {},
-                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f\u00B0C", it) } ?: "-"}") },
+                label = { Text("${'$'}{z.type}: ${'$'}{z.tempC?.let { String.format("%.1f C", it) } ?: "-"}") },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                     labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -165,7 +165,7 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
         val isHot = (avg ?: Float.NEGATIVE_INFINITY) > state.hotThresholdC
         ElevatedAssistChip(
             onClick = {},
-            label = { Text(avg?.let { String.format("Avg: %.1f\u00B0C", it) } ?: "Avg: -") },
+            label = { Text(avg?.let { String.format("Avg: %.1f C", it) } ?: "Avg: -") },
             colors = AssistChipDefaults.assistChipColors(
                 containerColor = if (isHot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                 labelColor = if (isHot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -188,7 +188,7 @@ fun MonitorScreen(nav: NavHostController, vm: KernelViewModel) {
                 trailingContent = {
                     AssistChip(
                         onClick = {},
-                        label = { Text(z.tempC?.let { String.format("%.1f\u00B0C", it) } ?: "-") },
+                        label = { Text(z.tempC?.let { String.format("%.1f C", it) } ?: "-") },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (hot) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = if (hot) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -217,7 +217,7 @@ fun SettingsScreen(vm: KernelViewModel) {
             valueRange = 250f..5000f,
             steps = 18
         )
-        Text("Hot threshold: ${'$'}{String.format("%.0f\u00B0C", state.hotThresholdC)}")
+        Text("Hot threshold: ${'$'}{String.format("%.0f C", state.hotThresholdC)}")
         Slider(
             value = state.hotThresholdC,
             onValueChange = { vm.setHotThresholdC(it) },

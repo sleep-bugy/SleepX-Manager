@@ -99,8 +99,7 @@ dependencies {
     // Coroutines for background polling
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Root access (libsu) for CPU tuning
-    implementation("com.github.topjohnwu:libsu:6.0.0")
+    // Root access (external su) used; libsu not required
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
